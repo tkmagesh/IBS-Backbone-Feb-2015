@@ -13,6 +13,93 @@
 		font-weight: bold;
 	}
 	</style>
+	<script src="jquery.js"></script>
+	<script type="text/javascript">
+	function SalaryCalculator(){
+		
+		var data = {
+			basic : 0,
+			hra : 0,
+			da : 0,
+			tax  : 0,
+			salary : 0
+		};
+
+		this.set = function(attrName, value){
+			data[attrName] = value;
+			//trigger the change notification
+			var eventHandler = onChangeHandlers[attrName];
+			if (typeof eventHandler === "function")
+				eventHandler();
+		};
+		this.get = function(attrName){
+			return data[attrName];
+		};
+
+		var onChangeHandlers = {
+			basic : null,
+			hra : null,
+			da : null,
+			tax : null,
+			salary : null
+		};
+
+		this.addOnChange = function(attrName, eventHandler){
+			onChangeHandlers[attrName] = eventHandler;
+		}
+
+		this.calculate = function(){
+			var gross = this.get('basic') + this.get('hra') + this.get('da');
+			var net = gross * ((100-this.get('tax'))/100);
+			this.set('salary', net);
+			
+		};
+	}
+	$(function(){
+		window.calculator = new SalaryCalculator();
+		
+		calculator.addOnChange('salary', function(){
+			$("#divResult").html(calculator.get('salary'));
+		});
+		calculator.addOnChange('basic', function(){
+			$("#txtBasic").val(calculator.get('basic'));
+		});
+
+		calculator.addOnChange ('hra', function(){
+			$("#txtHra").val(calculator.get('hra'));
+		});
+		calculator.addOnChange ('da', function(){
+			$("#txtDa").val(calculator.get('da'));
+		});
+		calculator.addOnChange ('tax', function(){
+			$("#rangeTax").val(calculator.get('tax'));
+			//$("#spanTax").text(this.value + "%");
+			$("#spanTax").text(calculator.get('tax') + "%");
+		});
+
+		$("#txtBasic").change(function(){
+			calculator.set('basic', parseFloat(this.value,10));
+		});
+		$("#txtHra").change(function(){
+			calculator.set('hra', parseFloat(this.value,10));
+		});
+		$("#txtDa").change(function(){
+			calculator.da = parseFloat(this.value,10);
+		});
+		$("#rangeTax").change(function(){
+			calculator.tax = parseFloat(this.value,10);
+		});
+		$("#btnCalculate").click(function(){
+
+			calculator.calculate();
+
+			
+		});
+		
+
+	});
+
+	</script>
 </head>
 <body>
 	<h1>Salary Calculator</h1>
