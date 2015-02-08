@@ -23,12 +23,16 @@
 		this.set = function(attrName, value){
 			data[attrName] = value;
 			//trigger the change notification
+			triggerEvent(attrName);
+		};
+
+		function triggerEvent(attrName){
 			var eventHandlers = onChangeHandlers[attrName] || [];
 			for(var i=0;i<eventHandlers.length;i++){
 				var eventHandler = eventHandlers[i];
 				eventHandler();
 			}
-		};
+		}
 		this.get = function(attrName){
 			return data[attrName];
 		};
@@ -44,6 +48,10 @@
 
 		this.toggle = function(){
 			this.set('isCompleted', !this.get('isCompleted'));
+		};
+
+		this.destroy = function(){
+			triggerEvent("destroy");
 		}
 	}
 
@@ -62,6 +70,10 @@
 				} else {
 					$root.removeClass('completed');
 				}
+			});
+
+			task.addOnChange("destroy", function(){
+				$root.remove();
 			});
 		};
 		this.render = function(){
@@ -96,6 +108,9 @@
 		}
 
 		this.add = function(task){
+			task.addOnChange('isCompleted', function(){
+				triggerEvent('change');
+			});
 			data.push(task);
 			triggerEvent("add", task);
 		};
@@ -103,6 +118,22 @@
 		this.list = function(){
 			return data;
 		};
+
+		this.completedTaskCount = function(){
+			return data.reduce(function(seed, task){
+				return task.get('isCompleted') ? ++seed : seed;
+			},0);
+		};
+
+		this.removeCompleted = function(){
+			for(var i=data.length-1;i>=0;i--){
+				var task = data[i];
+				if (task.get('isCompleted')){
+					task.destroy();
+					data.splice(i,1);
+				}
+			}
+		}
 
 	}
 
@@ -118,12 +149,21 @@
 				tasks.add(newTask);
 			});
 
+			$("#btnRemoveCompleted", $root).click(function(){
+				tasks.removeCompleted();
+			});
+
 			//Model Events
 			tasks.subscribe("add", function(newTask){
 				var taskView = new TaskView(newTask);
 				taskView.init();
 				taskView.render();
 				$("#olTaskList", $root).append(taskView.$root);
+				$("#completedTaskCount", $root).html(tasks.completedTaskCount());
+			});
+
+			tasks.subscribe("change", function(){
+				$("#completedTaskCount", $root).html(tasks.completedTaskCount());
 			});
 		}
 	}
@@ -131,7 +171,9 @@
 </head>
 <body>
 	<h1>Task Manager</h1>
+	
 	<div id ="taskApp">
+		<h3 id="completedTaskCount">No of completed tasks : #</h3>
 		<label for="">Task :</label>
 		<input type="text" name="" id="txtTask">
 		<input type="button" value="Add Task" id="btnAddTask">
