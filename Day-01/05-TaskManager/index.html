@@ -10,17 +10,134 @@
 		font-weight: bold;
 	}
 	</style>
+	<script src="jquery.js"></script>
+	<script>
+
+	function Task(){
+		var data = {
+			id : 0,
+			name : "",
+			isCompleted : false
+		};
+
+		this.set = function(attrName, value){
+			data[attrName] = value;
+			//trigger the change notification
+			var eventHandlers = onChangeHandlers[attrName] || [];
+			for(var i=0;i<eventHandlers.length;i++){
+				var eventHandler = eventHandlers[i];
+				eventHandler();
+			}
+		};
+		this.get = function(attrName){
+			return data[attrName];
+		};
+
+		var onChangeHandlers = {};
+
+		this.addOnChange = function(attrName, eventHandler){
+			if (typeof onChangeHandlers[attrName] === "undefined")
+				onChangeHandlers[attrName] = [];
+			var eventHandlers = onChangeHandlers[attrName];
+			eventHandlers.push( eventHandler );
+		};
+
+		this.toggle = function(){
+			this.set('isCompleted', !this.get('isCompleted'));
+		}
+	}
+
+	function TaskView(task){
+		var $root = this.$root = $("<li>");
+		this.init = function(){
+			//UI Actions
+			$root.click(function(){
+				task.toggle();
+			});
+
+			//Model Changes
+			task.addOnChange('isCompleted', function(){
+				if (task.get('isCompleted')){
+					$root.addClass('completed');
+				} else {
+					$root.removeClass('completed');
+				}
+			});
+		};
+		this.render = function(){
+			$root.html(task.get('name'));
+			if (task.get('isCompleted')){
+				$root.addClass('completed');
+			} else {
+				$root.removeClass('completed');
+			}
+		}
+	}
+
+	function TaskCollection(){
+		var data = [];
+
+		var onChangeHandlers = {};
+
+		this.subscribe = function(eventName, eventHandler){
+			if (typeof onChangeHandlers[eventName] === "undefined")
+				onChangeHandlers[eventName] = [];
+			var eventHandlers = onChangeHandlers[eventName];
+			eventHandlers.push( eventHandler );
+		};
+
+		function triggerEvent(eventName, data){
+			//trigger the change notification
+			var eventHandlers = onChangeHandlers[eventName] || [];
+			for(var i=0;i<eventHandlers.length;i++){
+				var eventHandler = eventHandlers[i];
+				eventHandler(data);
+			}
+		}
+
+		this.add = function(task){
+			data.push(task);
+			triggerEvent("add", task);
+		};
+
+		this.list = function(){
+			return data;
+		};
+
+	}
+
+	function TaskCollectionView(tasks){
+		var $root = this.$root = $("#taskApp");
+
+		this.init = function(){
+			//UI Actions
+			$("#btnAddTask", $root).click(function(){
+				var taskName = $("#txtTask", $root).val();
+				var newTask = new Task();
+				newTask.set('name', taskName);
+				tasks.add(newTask);
+			});
+
+			//Model Events
+			tasks.subscribe("add", function(newTask){
+				var taskView = new TaskView(newTask);
+				taskView.init();
+				taskView.render();
+				$("#olTaskList", $root).append(taskView.$root);
+			});
+		}
+	}
+	</script>
 </head>
 <body>
 	<h1>Task Manager</h1>
-	<div>
+	<div id ="taskApp">
 		<label for="">Task :</label>
 		<input type="text" name="" id="txtTask">
 		<input type="button" value="Add Task" id="btnAddTask">
 		<input type="button" value="Remove Completed" id="btnRemoveCompleted">
 		<ol id="olTaskList">
-			<li>Task - 1</li>
-			<li class="completed">Task - 2</li>
+			
 		</ol>
 	</div>
 </body>
